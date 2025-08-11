@@ -1,0 +1,9 @@
+<library path="motor_damiao_hardware">
+  <class name="motor_damiao_hardware/MotorDamiaoRobot"
+         type="motor_damiao_hardware::MotorDamiaoRobot"
+         base_class_type="hardware_interface::SystemInterface">
+    <description>
+    Hardware Interface for robot using Damiao motors.
+    </description>
+  </class>
+</library>

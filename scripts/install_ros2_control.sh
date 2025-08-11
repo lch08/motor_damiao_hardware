@@ -1,0 +1,1 @@
+apt-get install -y ros-${ROS_DISTRO}-robot-state-publisher ros-${ROS_DISTRO}-xacro ros-${ROS_DISTRO}-ros2-control*
