@@ -301,17 +301,17 @@ hardware_interface::return_type MotorDamiaoRobot::read(
             if (position_diff < -half_range) {
               // 正向跨越边界，位置增加一个完整范围
               accumulated_position_[i] += position_range + position_diff;
-              RCLCPP_INFO(rclcpp::get_logger("MotorDamiaoRobot"), 
-                          "Motor %s: Forward wrap detected, diff=%.3f, accumulated=%.3f", 
-                          info_.joints[i].name.c_str(), position_diff, accumulated_position_[i]);
+            //   RCLCPP_INFO(rclcpp::get_logger("MotorDamiaoRobot"), 
+            //               "Motor %s: Forward wrap detected, diff=%.3f, accumulated=%.3f", 
+            //               info_.joints[i].name.c_str(), position_diff, accumulated_position_[i]);
             }
             // 检测反向跳跃（从最小值跳到最大值附近）
             else if (position_diff > half_range) {
               // 反向跨越边界，位置减少一个完整范围
               accumulated_position_[i] += position_diff - position_range;
-              RCLCPP_INFO(rclcpp::get_logger("MotorDamiaoRobot"), 
-                          "Motor %s: Backward wrap detected, diff=%.3f, accumulated=%.3f", 
-                          info_.joints[i].name.c_str(), position_diff, accumulated_position_[i]);
+            //   RCLCPP_INFO(rclcpp::get_logger("MotorDamiaoRobot"), 
+            //               "Motor %s: Backward wrap detected, diff=%.3f, accumulated=%.3f", 
+            //               info_.joints[i].name.c_str(), position_diff, accumulated_position_[i]);
             }
             // 正常情况，直接累加差值
             else {
