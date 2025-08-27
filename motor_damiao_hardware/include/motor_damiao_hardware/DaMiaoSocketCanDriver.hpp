@@ -170,7 +170,7 @@ private:
     std::unique_ptr<MotionTranslation> translator_;          // 消息翻译器
 
     // 常量
-    static constexpr size_t MAX_QUEUE_SIZE = 50;             // 最大队列大小
+    static constexpr size_t MAX_QUEUE_SIZE = 10;             // 最大队列大小
     static constexpr int SOCKET_TIMEOUT_MS = 50;             // Socket超时时间(毫秒)
 };
 

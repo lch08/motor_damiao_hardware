@@ -28,6 +28,10 @@
 #include "motor_damiao_hardware/visibility_control.h"
 #include "motor_damiao_hardware/DaMiaoSocketCanDriver.hpp"
 #include "motor_damiao_hardware/DaMiaoMotionTranslation.hpp"
+#include "motor_interfaces/msg/joint_states.hpp"
+#include "motor_interfaces/msg/joint_state.hpp"
+#include "rclcpp/rclcpp.hpp"
+#include "realtime_tools/realtime_publisher.hpp"
 
 using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
 
@@ -41,6 +45,8 @@ struct MotorConfig{
     double kd;
     std::string can_name;
     DaMiaoMotion::Config damiao_config;
+
+    rclcpp::Time last_feedback_time;   // 最后一次反馈时间
 };
 
 class MotorDamiaoRobot : public hardware_interface::SystemInterface
@@ -52,6 +58,12 @@ public:
 
   MOTOR_DAMIAO_HARDWARE_PUBLIC
   CallbackReturn on_init(const hardware_interface::HardwareInfo & info) override;
+
+  MOTOR_DAMIAO_HARDWARE_PUBLIC
+  CallbackReturn on_configure(const rclcpp_lifecycle::State & previous_state) override;
+
+  MOTOR_DAMIAO_HARDWARE_PUBLIC
+  CallbackReturn on_activate(const rclcpp_lifecycle::State & previous_state) override;
 
   MOTOR_DAMIAO_HARDWARE_PUBLIC
   std::vector<hardware_interface::StateInterface> export_state_interfaces() override;
@@ -90,6 +102,17 @@ private:
   std::vector<double> accumulated_position_;   // 累加的位置值
   std::vector<bool> position_initialized_;     // 位置是否已初始化
   std::vector<bool> enable_position_expansion_; // 是否启用位置扩展
+  
+  // JointStates 消息相关
+  motor_interfaces::msg::JointStates joint_states_msg_;  // 存储所有电机状态
+  rclcpp::Publisher<motor_interfaces::msg::JointStates>::SharedPtr joint_states_publisher_;
+  std::unique_ptr<realtime_tools::RealtimePublisher<motor_interfaces::msg::JointStates>> realtime_joint_states_publisher_;
+  rclcpp::Time last_joint_states_publish_time_;          // 最后一次发布消息的时间
+  std::unique_ptr<rclcpp::Duration> joint_states_publish_timeout_;  // 发布超时时间
+  std::unique_ptr<rclcpp::Duration> feedback_timeout_;             // 反馈超时时间
+
+  // 转换错误代码从DaMiao格式到JointState格式
+  uint32_t convertErrorCode(const DaMiaoMotion::ErrorCode& damiao_error) const;
 };
 
 }  // namespace motor_damiao_hardware

@@ -178,7 +178,7 @@ bool DaMiaoSocketCanDriver::enableMotor(uint32_t motor_id) {
 
     bool success = sendCANFrame(frame);
     if (success) {
-        RCLCPP_INFO(logger_, "Motor 0x%X enabled", motor_id);
+        // RCLCPP_INFO(logger_, "Motor 0x%X enabled", motor_id);
     } else {
         RCLCPP_ERROR(logger_, "Failed to enable motor 0x%X", motor_id);
     }
@@ -204,7 +204,7 @@ bool DaMiaoSocketCanDriver::disableMotor(uint32_t motor_id) {
 
     bool success = sendCANFrame(frame);
     if (success) {
-        RCLCPP_INFO(logger_, "Motor 0x%X disabled", motor_id);
+        // RCLCPP_INFO(logger_, "Motor 0x%X disabled", motor_id);
     } else {
         RCLCPP_ERROR(logger_, "Failed to disable motor 0x%X", motor_id);
     }
@@ -237,15 +237,7 @@ bool DaMiaoSocketCanDriver::sendMITControl(uint32_t motor_id, const MITControlPa
         frame.data[i] = control_packet[i];
     }
 
-    bool success = sendCANFrame(frame);
-    if (success) {
-        // RCLCPP_INFO(logger_, "MIT control sent to motor 0x%X (pos: %.3f, vel: %.3f, kp: %.3f, kd: %.3f, torque: %.3f)", 
-        //             motor_id, params.position, params.velocity, params.kp, params.kd, params.torque);
-    } else {
-        RCLCPP_ERROR(logger_, "Failed to send MIT control to motor 0x%X", motor_id);
-    }
-    
-    return success;
+    return sendCANFrame(frame);
 }
 
 bool DaMiaoSocketCanDriver::getFeedback(uint32_t motor_id, FeedbackData& data) {
@@ -308,7 +300,7 @@ void DaMiaoSocketCanDriver::receiveThreadFunction() {
                 // 限制队列大小
                 if (queue.size() >= MAX_QUEUE_SIZE) {
                     queue.pop();
-                    RCLCPP_WARN(logger_, "Feedback queue full for motor 0x%X, dropping oldest data", motor_id);
+                    // RCLCPP_WARN(logger_, "Feedback queue full for motor 0x%X, dropping oldest data", motor_id);
                 }
                 
                 queue.push(feedback);
@@ -334,7 +326,7 @@ bool DaMiaoSocketCanDriver::sendCANFrame(const struct can_frame& frame) {
     if (bytes_sent == sizeof(frame)) {
         return true;
     } else {
-        RCLCPP_ERROR(logger_, "Failed to send CAN frame: %s", strerror(errno));
+        // RCLCPP_WARN(logger_, "Failed to send CAN frame: %s", strerror(errno));
         return false;
     }
 }
