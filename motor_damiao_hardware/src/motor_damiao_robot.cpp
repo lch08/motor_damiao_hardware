@@ -251,7 +251,7 @@ CallbackReturn MotorDamiaoRobot::on_configure(
     static auto node = rclcpp::Node::make_shared("motor_damiao_robot_publisher");
     
     joint_states_publisher_ = node->create_publisher<motor_interfaces::msg::JointStates>(
-      "joint_states", rclcpp::SystemDefaultsQoS());
+      "damiao_joint_states", rclcpp::SystemDefaultsQoS());
     realtime_joint_states_publisher_ =
       std::make_unique<realtime_tools::RealtimePublisher<motor_interfaces::msg::JointStates>>(
         joint_states_publisher_);
