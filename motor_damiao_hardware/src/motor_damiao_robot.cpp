@@ -489,6 +489,8 @@ hardware_interface::return_type MotorDamiaoRobot::write(
       }
         //如果电机回报通信超时,则自动清除错误
         if (motor_configs_[i].err_code == DaMiaoMotion::ErrorCode::CommLoss) {
+            RCLCPP_INFO(rclcpp::get_logger("MotorDamiaoRobot"), "Clear command loss motor 0x%X error on %s",
+                  config.can_id, config.can_name.c_str());
             if (!driver_it->second->clearMotorError(config.can_id)) {
                 RCLCPP_WARN(rclcpp::get_logger("MotorDamiaoRobot"), 
                         "Failed to clear motor 0x%X error on %s", config.can_id, config.can_name.c_str());
