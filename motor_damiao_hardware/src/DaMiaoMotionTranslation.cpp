@@ -57,7 +57,7 @@ bool MotionTranslation::parseFeedbackPacket(const Config& config, const std::vec
     data.id = in[0] & 0x0F;
 
     // Error
-    data.errorCode = static_cast<ErrorCode>((in[0] & 0xF0) >> 4);
+    data.error_code = static_cast<ErrorCode>((in[0] & 0xF0) >> 4);
      
 
     // Position (16 bits)

@@ -100,6 +100,13 @@ public:
     bool disableMotor(uint32_t motor_id);
 
     /**
+     * @brief 清除电机错误
+     * @param motor_id 电机ID
+     * @return 是否成功发送
+     */
+    bool clearMotorError(uint32_t motor_id);
+
+    /**
      * @brief 发送MIT控制命令
      * @param motor_id 电机ID
      * @param params 控制参数

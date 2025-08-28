@@ -130,7 +130,7 @@ CallbackReturn MotorDamiaoRobot::on_init(
     motor_configs_[i].kd = std::stod(joint.parameters.at("kd"));
 
     // 初始化电机状态
-    motor_configs_[i].last_feedback_time = rclcpp::Clock().now();
+    motor_configs_[i].err_code           = DaMiaoMotion::ErrorCode::NOT_ENABLE;
 
     // 初始化 JointState 消息
     joint_states_msg_.states[i].joint_name = joint.name;
@@ -220,21 +220,12 @@ CallbackReturn MotorDamiaoRobot::on_init(
                 "CAN driver initialized for %s", can_name.c_str());
   }
 
-  // 配置电机并启用
+  // 配置电机
   for (size_t i = 0; i < motor_configs_.size(); ++i) {
     const auto& config = motor_configs_[i];
     auto driver = can_drivers_[config.can_name];
-    
-    // 设置电机配置
+
     driver->setMotorConfig(config.can_id, config.feedback_id, config.damiao_config);
-    
-    // 启用电机
-    if (!driver->enableMotor(config.can_id)) {
-      RCLCPP_ERROR(rclcpp::get_logger("MotorDamiaoRobot"), 
-                   "Failed to enable motor 0x%X on %s", config.can_id, config.can_name.c_str());
-    } else {
-      joint_states_msg_.states[i].err_code = motor_interfaces::msg::JointState::ERR_CODE_ENABLE;
-    }
   }
 
   RCLCPP_INFO(rclcpp::get_logger("MotorDamiaoRobot"), "MotorDamiaoRobot initialized successfully");
@@ -284,23 +275,29 @@ CallbackReturn MotorDamiaoRobot::on_configure(
 CallbackReturn MotorDamiaoRobot::on_activate(
   const rclcpp_lifecycle::State & /*previous_state*/)
 {
+  enableAllMotor();
+  is_active_ = true;
   RCLCPP_INFO(rclcpp::get_logger("MotorDamiaoRobot"), "MotorDamiaoRobot activated successfully");
   return CallbackReturn::SUCCESS;
 }
+
+// ------------------------------------------------------------------------------------------
+CallbackReturn MotorDamiaoRobot::on_deactivate(
+  const rclcpp_lifecycle::State & /*previous_state*/)
+{
+  disableAllMotor();
+  is_active_ = false;
+  RCLCPP_INFO(rclcpp::get_logger("MotorDamiaoRobot"), "MotorDamiaoRobot deactivated successfully");
+  return CallbackReturn::SUCCESS;
+}
+
+
 // ------------------------------------------------------------------------------------------
 MotorDamiaoRobot::~MotorDamiaoRobot()
 {
   RCLCPP_INFO(rclcpp::get_logger("MotorDamiaoRobot"), "~MotorDamiaoRobot");
   
-  // 禁用所有电机并更新状态
-  for (size_t i = 0; i < motor_configs_.size(); ++i) {
-    const auto& config = motor_configs_[i];
-    auto driver_it = can_drivers_.find(config.can_name);
-    if (driver_it != can_drivers_.end()) {
-      driver_it->second->disableMotor(config.can_id);
-      joint_states_msg_.states[i].err_code = motor_interfaces::msg::JointState::ERR_CODE_DISABLE;
-    }
-  }
+  disableAllMotor();
   
   // 关闭所有CAN驱动程序
   for (auto& driver_pair : can_drivers_) {
@@ -366,11 +363,12 @@ hardware_interface::return_type MotorDamiaoRobot::read(
       if (driver_it->second->getFeedback(config.can_id, feedback)) {
         // 更新最后反馈时间
         motor_configs_[i].last_feedback_time = current_time;
+        motor_configs_[i].err_code           = feedback.error_code;
 
         joint_states_msg_.states[i].mos_temp = feedback.mos_temperature;
         joint_states_msg_.states[i].motor_temp = feedback.coil_temperature;
 
-        new_err_code = convertErrorCode(feedback.errorCode);
+        new_err_code = convertErrorCode(feedback.error_code);
 
         // 处理位置数据
         if (enable_position_expansion_[i]) {
@@ -426,7 +424,10 @@ hardware_interface::return_type MotorDamiaoRobot::read(
         rclcpp::Duration time_since_last_feedback = current_time - motor_configs_[i].last_feedback_time;
         if (time_since_last_feedback > *feedback_timeout_) {
           // 超时，设置为断开连接状态
-          if (new_err_code != motor_interfaces::msg::JointState::ERR_CODE_DISCONNECT) {
+          if (new_err_code != motor_interfaces::msg::JointState::ERR_CODE_DISCONNECT &&
+              (new_err_code == motor_interfaces::msg::JointState::ERR_CODE_ENABLE ||
+              new_err_code == motor_interfaces::msg::JointState::ERR_CODE_DISABLE)) {
+
             new_err_code = motor_interfaces::msg::JointState::ERR_CODE_DISCONNECT;
             states_changed = true;
           }
@@ -471,16 +472,29 @@ hardware_interface::return_type MotorDamiaoRobot::write(
       continue;
     }
 
-    // 检查电机是否在失能状态，如果是则重新使能
-    if (joint_states_msg_.states[i].err_code == motor_interfaces::msg::JointState::ERR_CODE_DISABLE) {
-        RCLCPP_INFO(rclcpp::get_logger("MotorDamiaoRobot"), "Re-enabling motor 0x%X on %s",
-                    config.can_id, config.can_name.c_str());
-
-        if (!driver_it->second->enableMotor(config.can_id)) {
+    // 仅在active时更改电机状态
+    if (is_active_) {
+      // 检查电机是否在失能状态，如果是则重新使能
+      if (joint_states_msg_.states[i].err_code == motor_interfaces::msg::JointState::ERR_CODE_DISABLE &&
+          motor_configs_[i].enable_time < rclcpp::Clock().now() - rclcpp::Duration::from_seconds(0.1)) {
+          RCLCPP_INFO(rclcpp::get_logger("MotorDamiaoRobot"), "Re-enabling motor 0x%X on %s",
+                  config.can_id, config.can_name.c_str());
+    
+          if (!driver_it->second->enableMotor(config.can_id)) {
             RCLCPP_WARN(rclcpp::get_logger("MotorDamiaoRobot"), 
-                    "Failed to re-enable motor 0x%X on %s", config.can_id, config.can_name.c_str());
+                  "Failed to re-enable motor 0x%X on %s", config.can_id, config.can_name.c_str());
+          } else {
+            motor_configs_[i].enable_time = rclcpp::Clock().now();
+          }
+      }
+        //如果电机回报通信超时,则自动清除错误
+        if (motor_configs_[i].err_code == DaMiaoMotion::ErrorCode::CommLoss) {
+            if (!driver_it->second->clearMotorError(config.can_id)) {
+                RCLCPP_WARN(rclcpp::get_logger("MotorDamiaoRobot"), 
+                        "Failed to clear motor 0x%X error on %s", config.can_id, config.can_name.c_str());
+            }
         }
-    }
+      }
 
     // 检查哪些命令接口有有效值
     bool has_position_cmd = !std::isnan(hw_commands_position_[i]);
@@ -640,6 +654,45 @@ uint32_t MotorDamiaoRobot::convertErrorCode(const DaMiaoMotion::ErrorCode& damia
                   "Unknown DaMiao error code: 0x%X, treating as disconnect", 
                   static_cast<uint8_t>(damiao_error));
       return motor_interfaces::msg::JointState::ERR_CODE_DISCONNECT;
+  }
+}
+
+// ------------------------------------------------------------------------------------------
+void MotorDamiaoRobot::enableAllMotor()
+{
+  for (size_t i = 0; i < motor_configs_.size(); ++i) {
+    const auto& config = motor_configs_[i];
+    auto driver = can_drivers_[config.can_name];
+
+    // 清除错误
+    if (!driver->clearMotorError(config.can_id)) {
+        RCLCPP_WARN(rclcpp::get_logger("MotorDamiaoRobot"), 
+                "Failed to clear motor 0x%X error on %s", config.can_id, config.can_name.c_str());
+    }
+    
+    // 启用电机
+    if (!driver->enableMotor(config.can_id)) {
+      RCLCPP_ERROR(rclcpp::get_logger("MotorDamiaoRobot"), 
+                   "Failed to enable motor 0x%X on %s", config.can_id, config.can_name.c_str());
+    } else {
+      motor_configs_[i].enable_time        = rclcpp::Clock().now();
+      motor_configs_[i].last_feedback_time = rclcpp::Clock().now();
+
+      joint_states_msg_.states[i].err_code = motor_interfaces::msg::JointState::ERR_CODE_ENABLE;
+    }
+  }
+}
+
+// ------------------------------------------------------------------------------------------
+void MotorDamiaoRobot::disableAllMotor()
+{
+  for (size_t i = 0; i < motor_configs_.size(); ++i) {
+    const auto& config = motor_configs_[i];
+    auto driver_it = can_drivers_.find(config.can_name);
+    if (driver_it != can_drivers_.end()) {
+        driver_it->second->disableMotor(config.can_id);
+        joint_states_msg_.states[i].err_code = motor_interfaces::msg::JointState::ERR_CODE_DISABLE;
+    }
   }
 }
 

@@ -48,7 +48,7 @@ struct MITControlParams {
 
 struct FeedbackData {
     uint32_t  id;
-    ErrorCode errorCode;
+    ErrorCode error_code;
     double    position;
     double    velocity;
     double    torque;

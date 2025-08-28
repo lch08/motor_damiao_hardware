@@ -176,14 +176,7 @@ bool DaMiaoSocketCanDriver::enableMotor(uint32_t motor_id) {
         frame.data[i] = enable_packet[i];
     }
 
-    bool success = sendCANFrame(frame);
-    if (success) {
-        // RCLCPP_INFO(logger_, "Motor 0x%X enabled", motor_id);
-    } else {
-        RCLCPP_ERROR(logger_, "Failed to enable motor 0x%X", motor_id);
-    }
-    
-    return success;
+    return sendCANFrame(frame);
 }
 
 bool DaMiaoSocketCanDriver::disableMotor(uint32_t motor_id) {
@@ -202,14 +195,26 @@ bool DaMiaoSocketCanDriver::disableMotor(uint32_t motor_id) {
         frame.data[i] = disable_packet[i];
     }
 
-    bool success = sendCANFrame(frame);
-    if (success) {
-        // RCLCPP_INFO(logger_, "Motor 0x%X disabled", motor_id);
-    } else {
-        RCLCPP_ERROR(logger_, "Failed to disable motor 0x%X", motor_id);
+    return sendCANFrame(frame);
+}
+
+bool DaMiaoSocketCanDriver::clearMotorError(uint32_t motor_id) {
+    if (!isConnected()) {
+        RCLCPP_ERROR(logger_, "CAN driver not connected");
+        return false;
     }
+
+    auto clear_error_packet = translator_->generateClearErrorPacket();
     
-    return success;
+    struct can_frame frame;
+    frame.can_id = motor_id;
+    frame.can_dlc = std::min(static_cast<size_t>(8), clear_error_packet.size());
+    
+    for (size_t i = 0; i < frame.can_dlc; ++i) {
+        frame.data[i] = clear_error_packet[i];
+    }
+
+    return sendCANFrame(frame);
 }
 
 bool DaMiaoSocketCanDriver::sendMITControl(uint32_t motor_id, const MITControlParams& params) {
@@ -306,7 +311,7 @@ void DaMiaoSocketCanDriver::receiveThreadFunction() {
                 queue.push(feedback);
                 
                 // RCLCPP_INFO(logger_, "Feedback received for motor 0x%X (error: %u, pos: %.3f, vel: %.3f, torque: %.3f)", 
-                //             motor_id, static_cast<uint8_t>(feedback.errorCode), 
+                //             motor_id, static_cast<uint8_t>(feedback.error_code), 
                 //             feedback.position, feedback.velocity, feedback.torque);
             } else {
                 RCLCPP_WARN(logger_, "Failed to parse feedback packet from motor 0x%X", motor_id);

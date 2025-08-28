@@ -46,7 +46,9 @@ struct MotorConfig{
     std::string can_name;
     DaMiaoMotion::Config damiao_config;
 
+    rclcpp::Time enable_time;          // 电机启用的时间
     rclcpp::Time last_feedback_time;   // 最后一次反馈时间
+    DaMiaoMotion::ErrorCode err_code;  // 电机反馈的错误代码
 };
 
 class MotorDamiaoRobot : public hardware_interface::SystemInterface
@@ -64,6 +66,9 @@ public:
 
   MOTOR_DAMIAO_HARDWARE_PUBLIC
   CallbackReturn on_activate(const rclcpp_lifecycle::State & previous_state) override;
+
+  MOTOR_DAMIAO_HARDWARE_PUBLIC
+  CallbackReturn on_deactivate(const rclcpp_lifecycle::State & previous_state) override;
 
   MOTOR_DAMIAO_HARDWARE_PUBLIC
   std::vector<hardware_interface::StateInterface> export_state_interfaces() override;
@@ -91,6 +96,8 @@ private:
   std::vector<double> hw_states_position_;
   std::vector<double> hw_states_velocity_;
   std::vector<double> hw_states_effort_;
+
+  bool is_active_{false};
   
   std::vector<MotorConfig> motor_configs_;
 
@@ -113,6 +120,12 @@ private:
 
   // 转换错误代码从DaMiao格式到JointState格式
   uint32_t convertErrorCode(const DaMiaoMotion::ErrorCode& damiao_error) const;
+
+  // 开启所有电机
+  void enableAllMotor();
+  
+  // 关闭所有电机
+  void disableAllMotor();
 };
 
 }  // namespace motor_damiao_hardware
