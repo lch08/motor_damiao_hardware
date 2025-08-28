@@ -46,9 +46,9 @@ CallbackReturn MotorDamiaoRobot::on_init(
   last_joint_states_publish_time_ = rclcpp::Clock().now();
   
   // Allocate memory
-  hw_states_position_.resize(info_.joints.size(), std::numeric_limits<double>::quiet_NaN());
-  hw_states_velocity_.resize(info_.joints.size(), std::numeric_limits<double>::quiet_NaN());
-  hw_states_effort_.resize(info_.joints.size(), std::numeric_limits<double>::quiet_NaN());
+  hw_states_position_.resize(info_.joints.size(), 0.0);
+  hw_states_velocity_.resize(info_.joints.size(), 0.0);
+  hw_states_effort_.resize(info_.joints.size(), 0.0);
   hw_commands_position_.resize(info_.joints.size(), std::numeric_limits<double>::quiet_NaN());
   hw_commands_velocity_.resize(info_.joints.size(), std::numeric_limits<double>::quiet_NaN());
   hw_commands_effort_.resize(info_.joints.size(), std::numeric_limits<double>::quiet_NaN());
