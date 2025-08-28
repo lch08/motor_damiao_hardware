@@ -50,7 +50,7 @@ bool MotionTranslation::generateMITControlPacket(const Config& config, const MIT
 
 bool MotionTranslation::parseFeedbackPacket(const Config& config, const std::vector<uint8_t>& in, FeedbackData& data) {
     if (in.size() != 8) {
-        return false; // 输入数据包大小不正确
+        return false;  // 输入数据包大小不正确
     }
 
     // ID
@@ -58,7 +58,6 @@ bool MotionTranslation::parseFeedbackPacket(const Config& config, const std::vec
 
     // Error
     data.error_code = static_cast<ErrorCode>((in[0] & 0xF0) >> 4);
-     
 
     // Position (16 bits)
     uint16_t pos = (in[1] << 8) | in[2];
@@ -75,7 +74,7 @@ bool MotionTranslation::parseFeedbackPacket(const Config& config, const std::vec
     }
 
     // Torque (12 bits)
-    uint16_t torque = ((in[4] & 0x0F) << 8 | in[5] ) | in[6];
+    uint16_t torque = ((in[4] & 0x0F) << 8 | in[5]) | in[6];
     data.torque = uint_to_double(torque, config.torque_min, config.torque_max, 12);
     if (config.reverse) {
         data.torque = -data.torque;
@@ -88,4 +87,4 @@ bool MotionTranslation::parseFeedbackPacket(const Config& config, const std::vec
     return true;
 }
 
-} // namespace DaMiaoMotion
+}  // namespace DaMiaoMotion

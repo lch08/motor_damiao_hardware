@@ -37,14 +37,14 @@
 namespace DaMiaoMotion {
 
 class DaMiaoSocketCanDriver {
-public:
+   public:
     /**
      * @brief 构造函数
      * @param interface_name CAN接口名称 (例如: "can0")
      * @param logger ROS2日志记录器
      */
-    explicit DaMiaoSocketCanDriver(const std::string& interface_name, 
-                                  rclcpp::Logger logger = rclcpp::get_logger("DaMiaoSocketCanDriver"));
+    explicit DaMiaoSocketCanDriver(const std::string& interface_name,
+                                   rclcpp::Logger logger = rclcpp::get_logger("DaMiaoSocketCanDriver"));
 
     /**
      * @brief 析构函数
@@ -134,7 +134,7 @@ public:
      */
     bool isConnected() const { return socket_fd_ >= 0 && running_; }
 
-private:
+   private:
     /**
      * @brief 接收线程函数
      */
@@ -155,30 +155,30 @@ private:
     bool receiveCANFrame(struct can_frame& frame);
 
     // 成员变量
-    std::string interface_name_;                             // CAN接口名称
-    int socket_fd_;                                          // CAN socket文件描述符
-    rclcpp::Logger logger_;                                  // 日志记录器
+    std::string interface_name_;  // CAN接口名称
+    int socket_fd_;               // CAN socket文件描述符
+    rclcpp::Logger logger_;       // 日志记录器
 
     // 线程相关
-    std::atomic<bool> running_;                              // 运行状态
-    std::unique_ptr<std::thread> receive_thread_;            // 接收线程
+    std::atomic<bool> running_;                    // 运行状态
+    std::unique_ptr<std::thread> receive_thread_;  // 接收线程
 
     // 电机配置
-    std::map<uint32_t, Config> motor_configs_;               // 电机ID到配置的映射
-    std::map<uint32_t, uint32_t> motor_feedback_ids_;        // 电机反馈ID到电机CAN ID的映射
-    mutable std::mutex config_mutex_;                        // 配置互斥锁
+    std::map<uint32_t, Config> motor_configs_;         // 电机ID到配置的映射
+    std::map<uint32_t, uint32_t> motor_feedback_ids_;  // 电机反馈ID到电机CAN ID的映射
+    mutable std::mutex config_mutex_;                  // 配置互斥锁
 
     // 反馈数据队列
     std::map<uint32_t, std::queue<FeedbackData>> feedback_queues_;  // 每个电机的反馈队列
-    std::mutex feedback_mutex_;                              // 反馈数据互斥锁
-    std::condition_variable feedback_cv_;                    // 反馈数据条件变量
+    std::mutex feedback_mutex_;                                     // 反馈数据互斥锁
+    std::condition_variable feedback_cv_;                           // 反馈数据条件变量
 
     // 消息翻译器
-    std::unique_ptr<MotionTranslation> translator_;          // 消息翻译器
+    std::unique_ptr<MotionTranslation> translator_;  // 消息翻译器
 
     // 常量
-    static constexpr size_t MAX_QUEUE_SIZE = 10;             // 最大队列大小
-    static constexpr int SOCKET_TIMEOUT_MS = 50;             // Socket超时时间(毫秒)
+    static constexpr size_t MAX_QUEUE_SIZE = 10;  // 最大队列大小
+    static constexpr int SOCKET_TIMEOUT_MS = 50;  // Socket超时时间(毫秒)
 };
 
-} // namespace DaMiaoMotion
+}  // namespace DaMiaoMotion

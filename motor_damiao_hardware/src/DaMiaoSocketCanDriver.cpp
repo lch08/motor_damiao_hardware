@@ -26,8 +26,7 @@ DaMiaoSocketCanDriver::DaMiaoSocketCanDriver(const std::string& interface_name, 
     , socket_fd_(-1)
     , logger_(logger)
     , running_(false)
-    , translator_(std::make_unique<MotionTranslation>())
-{
+    , translator_(std::make_unique<MotionTranslation>()) {
     RCLCPP_INFO(logger_, "DaMiaoSocketCanDriver created for interface: %s", interface_name_.c_str());
 }
 
@@ -53,7 +52,7 @@ bool DaMiaoSocketCanDriver::initialize() {
     struct timeval timeout;
     timeout.tv_sec = SOCKET_TIMEOUT_MS / 1000;
     timeout.tv_usec = (SOCKET_TIMEOUT_MS % 1000) * 1000;
-    
+
     if (setsockopt(socket_fd_, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) < 0) {
         RCLCPP_WARN(logger_, "Failed to set socket receive timeout: %s", strerror(errno));
     }
@@ -66,8 +65,8 @@ bool DaMiaoSocketCanDriver::initialize() {
     struct ifreq ifr;
     strcpy(ifr.ifr_name, interface_name_.c_str());
     if (ioctl(socket_fd_, SIOCGIFINDEX, &ifr) < 0) {
-        RCLCPP_ERROR(logger_, "Failed to get interface index for %s: %s", 
-                    interface_name_.c_str(), strerror(errno));
+        RCLCPP_ERROR(logger_, "Failed to get interface index for %s: %s",
+                     interface_name_.c_str(), strerror(errno));
         close(socket_fd_);
         socket_fd_ = -1;
         return false;
@@ -78,9 +77,9 @@ bool DaMiaoSocketCanDriver::initialize() {
     addr.can_family = AF_CAN;
     addr.can_ifindex = ifr.ifr_ifindex;
 
-    if (bind(socket_fd_, (struct sockaddr *)&addr, sizeof(addr)) < 0) {
-        RCLCPP_ERROR(logger_, "Failed to bind CAN socket to %s: %s", 
-                    interface_name_.c_str(), strerror(errno));
+    if (bind(socket_fd_, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
+        RCLCPP_ERROR(logger_, "Failed to bind CAN socket to %s: %s",
+                     interface_name_.c_str(), strerror(errno));
         close(socket_fd_);
         socket_fd_ = -1;
         return false;
@@ -100,7 +99,7 @@ void DaMiaoSocketCanDriver::shutdown() {
     }
 
     RCLCPP_INFO(logger_, "Shutting down CAN driver...");
-    
+
     // 停止接收线程
     running_ = false;
     if (receive_thread_ && receive_thread_->joinable()) {
@@ -123,20 +122,20 @@ bool DaMiaoSocketCanDriver::setCanBitrate(const std::string& can_interface, uint
     std::ostringstream command_stream;
     command_stream << "ip link set " << can_interface << " type can bitrate " << bitrate;
     std::string command = command_stream.str();
-    
+
     RCLCPP_INFO(logger_, "Setting CAN bitrate: %s", command.c_str());
-    
+
     // 执行系统命令
     std::system("ip link set can0 down");
     int result = std::system(command.c_str());
     std::system("ip link set can0 up");
-    
+
     if (result == 0) {
-        RCLCPP_INFO(logger_, "Successfully set CAN bitrate for %s to %u", 
+        RCLCPP_INFO(logger_, "Successfully set CAN bitrate for %s to %u",
                     can_interface.c_str(), bitrate);
         return true;
     } else {
-        RCLCPP_ERROR(logger_, "Failed to set CAN bitrate for %s to %u, command returned: %d", 
+        RCLCPP_ERROR(logger_, "Failed to set CAN bitrate for %s to %u, command returned: %d",
                      can_interface.c_str(), bitrate, result);
         return false;
     }
@@ -155,9 +154,9 @@ Config DaMiaoSocketCanDriver::getMotorConfig(uint32_t motor_id) const {
     if (it != motor_configs_.end()) {
         return it->second;
     }
-    
+
     RCLCPP_WARN(logger_, "Motor 0x%X config not found, using default", motor_id);
-    return Config{}; // 返回默认配置
+    return Config{};  // 返回默认配置
 }
 
 bool DaMiaoSocketCanDriver::enableMotor(uint32_t motor_id) {
@@ -167,11 +166,11 @@ bool DaMiaoSocketCanDriver::enableMotor(uint32_t motor_id) {
     }
 
     auto enable_packet = translator_->generateEnablePacket();
-    
+
     struct can_frame frame;
     frame.can_id = motor_id;
     frame.can_dlc = std::min(static_cast<size_t>(8), enable_packet.size());
-    
+
     for (size_t i = 0; i < frame.can_dlc; ++i) {
         frame.data[i] = enable_packet[i];
     }
@@ -186,11 +185,11 @@ bool DaMiaoSocketCanDriver::disableMotor(uint32_t motor_id) {
     }
 
     auto disable_packet = translator_->generateUnenablePacket();
-    
+
     struct can_frame frame;
     frame.can_id = motor_id;
     frame.can_dlc = std::min(static_cast<size_t>(8), disable_packet.size());
-    
+
     for (size_t i = 0; i < frame.can_dlc; ++i) {
         frame.data[i] = disable_packet[i];
     }
@@ -205,11 +204,11 @@ bool DaMiaoSocketCanDriver::clearMotorError(uint32_t motor_id) {
     }
 
     auto clear_error_packet = translator_->generateClearErrorPacket();
-    
+
     struct can_frame frame;
     frame.can_id = motor_id;
     frame.can_dlc = std::min(static_cast<size_t>(8), clear_error_packet.size());
-    
+
     for (size_t i = 0; i < frame.can_dlc; ++i) {
         frame.data[i] = clear_error_packet[i];
     }
@@ -225,7 +224,7 @@ bool DaMiaoSocketCanDriver::sendMITControl(uint32_t motor_id, const MITControlPa
 
     // 获取电机配置
     Config config = getMotorConfig(motor_id);
-    
+
     // 生成控制数据包
     std::vector<uint8_t> control_packet;
     if (!translator_->generateMITControlPacket(config, params, control_packet)) {
@@ -237,7 +236,7 @@ bool DaMiaoSocketCanDriver::sendMITControl(uint32_t motor_id, const MITControlPa
     struct can_frame frame;
     frame.can_id = motor_id;
     frame.can_dlc = std::min(static_cast<size_t>(8), control_packet.size());
-    
+
     for (size_t i = 0; i < frame.can_dlc; ++i) {
         frame.data[i] = control_packet[i];
     }
@@ -247,21 +246,21 @@ bool DaMiaoSocketCanDriver::sendMITControl(uint32_t motor_id, const MITControlPa
 
 bool DaMiaoSocketCanDriver::getFeedback(uint32_t motor_id, FeedbackData& data) {
     std::lock_guard<std::mutex> lock(feedback_mutex_);
-    
+
     auto it = feedback_queues_.find(motor_id);
     if (it == feedback_queues_.end() || it->second.empty()) {
         return false;
     }
-    
+
     data = it->second.front();
     it->second.pop();
-    
+
     return true;
 }
 
 void DaMiaoSocketCanDriver::clearFeedbackQueue(uint32_t motor_id) {
     std::lock_guard<std::mutex> lock(feedback_mutex_);
-    
+
     auto it = feedback_queues_.find(motor_id);
     if (it != feedback_queues_.end()) {
         std::queue<FeedbackData> empty;
@@ -272,14 +271,14 @@ void DaMiaoSocketCanDriver::clearFeedbackQueue(uint32_t motor_id) {
 
 void DaMiaoSocketCanDriver::receiveThreadFunction() {
     RCLCPP_INFO(logger_, "CAN receive thread started");
-    
+
     while (running_) {
         struct can_frame frame;
         if (receiveCANFrame(frame)) {
             // 解析反馈数据
             uint32_t feedback_id = frame.can_id;
 
-            uint32_t motor_id;;
+            uint32_t motor_id;
             {
                 // 查找反馈ID对应的电机CAN ID
                 std::lock_guard<std::mutex> config_lock(config_mutex_);
@@ -291,34 +290,34 @@ void DaMiaoSocketCanDriver::receiveThreadFunction() {
                 motor_id = feedback_it->second;
             }
             Config config = getMotorConfig(motor_id);
-            
+
             std::vector<uint8_t> packet_data(frame.data, frame.data + frame.can_dlc);
             FeedbackData feedback;
-            
+
             if (translator_->parseFeedbackPacket(config, packet_data, feedback)) {
                 feedback.id = motor_id;
-                
+
                 // 将反馈数据加入队列
                 std::lock_guard<std::mutex> lock(feedback_mutex_);
                 auto& queue = feedback_queues_[motor_id];
-                
+
                 // 限制队列大小
                 if (queue.size() >= MAX_QUEUE_SIZE) {
                     queue.pop();
                     // RCLCPP_WARN(logger_, "Feedback queue full for motor 0x%X, dropping oldest data", motor_id);
                 }
-                
+
                 queue.push(feedback);
-                
-                // RCLCPP_INFO(logger_, "Feedback received for motor 0x%X (error: %u, pos: %.3f, vel: %.3f, torque: %.3f)", 
-                //             motor_id, static_cast<uint8_t>(feedback.error_code), 
+
+                // RCLCPP_INFO(logger_, "Feedback received for motor 0x%X (error: %u, pos: %.3f, vel: %.3f, torque: %.3f)",
+                //             motor_id, static_cast<uint8_t>(feedback.error_code),
                 //             feedback.position, feedback.velocity, feedback.torque);
             } else {
                 RCLCPP_WARN(logger_, "Failed to parse feedback packet from motor 0x%X", motor_id);
             }
         }
     }
-    
+
     RCLCPP_INFO(logger_, "CAN receive thread stopped");
 }
 
@@ -353,4 +352,4 @@ bool DaMiaoSocketCanDriver::receiveCANFrame(struct can_frame& frame) {
     }
 }
 
-} // namespace DaMiaoMotion
+}  // namespace DaMiaoMotion

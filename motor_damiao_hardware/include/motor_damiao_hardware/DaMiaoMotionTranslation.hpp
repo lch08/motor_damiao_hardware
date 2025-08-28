@@ -23,12 +23,12 @@
 
 #include <rclcpp/rclcpp.hpp>
 
-namespace DaMiaoMotion{
+namespace DaMiaoMotion {
 
 enum class ErrorCode : uint8_t {
-    NOT_ENABLE   = 0x0, // 正常
+    NOT_ENABLE   = 0x0,  // 正常
     ENABLE       = 0x1,
-    Overvoltage  = 0x8, // 异常
+    Overvoltage  = 0x8,  // 异常
     Undervoltage = 0x9,
     Overcurrent  = 0xA,
     MOSOvertemp  = 0xB,
@@ -71,11 +71,11 @@ struct Config {
 };
 
 class MotionTranslation {
-public:
+   public:
     /**
      * @brief 构造函数
      */
-    MotionTranslation(){}
+    MotionTranslation() {}
 
     inline std::vector<uint8_t> generateEnablePacket() const {
         std::vector<uint8_t> buffer{0xff, 0xff, 0xff, 0xff,
@@ -89,14 +89,14 @@ public:
         return buffer;
     }
 
-    //设定零点
+    // 设定零点
     inline std::vector<uint8_t> generateSetZeroPacket() const {
         std::vector<uint8_t> buffer{0xff, 0xff, 0xff, 0xff,
                                     0xff, 0xff, 0xff, 0xfe};
         return buffer;
     }
 
-    //清除错误
+    // 清除错误
     inline std::vector<uint8_t> generateClearErrorPacket() const {
         std::vector<uint8_t> buffer{0xff, 0xff, 0xff, 0xff,
                                     0xff, 0xff, 0xff, 0xfb};
@@ -120,11 +120,11 @@ public:
      */
     bool parseFeedbackPacket(const Config& config, const std::vector<uint8_t>& in, FeedbackData& data);
 
-private:
-    template<typename T>
+   private:
+    template <typename T>
     static void packBits(std::vector<uint8_t>& buffer, T value, int& bitOffset, int bits);
 
-    template<typename T>
+    template <typename T>
     inline T clamp(T value, T min_val, T max_val) const {
         return (value < min_val) ? min_val : (value > max_val) ? max_val : value;
     }
@@ -141,7 +141,7 @@ private:
     }
 };
 
-template<typename T>
+template <typename T>
 void MotionTranslation::packBits(std::vector<uint8_t>& buffer, T value, int& bitOffset, int bits) {
     while (bits > 0) {
         int byteIndex = bitOffset / 8;
@@ -159,6 +159,4 @@ void MotionTranslation::packBits(std::vector<uint8_t>& buffer, T value, int& bit
     }
 }
 
-
-
-} // namespace DaMiaoMotion
+}  // namespace DaMiaoMotion

@@ -31,14 +31,14 @@
 #include "motor_interfaces/msg/joint_states.hpp"
 #include "motor_interfaces/msg/joint_state.hpp"
 #include "rclcpp/rclcpp.hpp"
+#include "rclcpp_lifecycle/state.hpp"
 #include "realtime_tools/realtime_publisher.hpp"
 
 using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
 
-namespace motor_damiao_hardware
-{
+namespace motor_damiao_hardware {
 
-struct MotorConfig{
+struct MotorConfig {
     uint32_t can_id;
     uint32_t feedback_id;
     double kp;
@@ -51,81 +51,80 @@ struct MotorConfig{
     DaMiaoMotion::ErrorCode err_code;  // 电机反馈的错误代码
 };
 
-class MotorDamiaoRobot : public hardware_interface::SystemInterface
-{
-public:
-  RCLCPP_SHARED_PTR_DEFINITIONS(MotorDamiaoRobot);
+class MotorDamiaoRobot : public hardware_interface::SystemInterface {
+   public:
+    RCLCPP_SHARED_PTR_DEFINITIONS(MotorDamiaoRobot);
 
-  ~MotorDamiaoRobot() override;
+    ~MotorDamiaoRobot() override;
 
-  MOTOR_DAMIAO_HARDWARE_PUBLIC
-  CallbackReturn on_init(const hardware_interface::HardwareInfo & info) override;
+    MOTOR_DAMIAO_HARDWARE_PUBLIC
+    CallbackReturn on_init(const hardware_interface::HardwareInfo& info) override;
 
-  MOTOR_DAMIAO_HARDWARE_PUBLIC
-  CallbackReturn on_configure(const rclcpp_lifecycle::State & previous_state) override;
+    MOTOR_DAMIAO_HARDWARE_PUBLIC
+    CallbackReturn on_configure(const rclcpp_lifecycle::State& previous_state) override;
 
-  MOTOR_DAMIAO_HARDWARE_PUBLIC
-  CallbackReturn on_activate(const rclcpp_lifecycle::State & previous_state) override;
+    MOTOR_DAMIAO_HARDWARE_PUBLIC
+    CallbackReturn on_activate(const rclcpp_lifecycle::State& previous_state) override;
 
-  MOTOR_DAMIAO_HARDWARE_PUBLIC
-  CallbackReturn on_deactivate(const rclcpp_lifecycle::State & previous_state) override;
+    MOTOR_DAMIAO_HARDWARE_PUBLIC
+    CallbackReturn on_deactivate(const rclcpp_lifecycle::State& previous_state) override;
 
-  MOTOR_DAMIAO_HARDWARE_PUBLIC
-  std::vector<hardware_interface::StateInterface> export_state_interfaces() override;
+    MOTOR_DAMIAO_HARDWARE_PUBLIC
+    std::vector<hardware_interface::StateInterface> export_state_interfaces() override;
 
-  MOTOR_DAMIAO_HARDWARE_PUBLIC
-  std::vector<hardware_interface::CommandInterface> export_command_interfaces() override;
+    MOTOR_DAMIAO_HARDWARE_PUBLIC
+    std::vector<hardware_interface::CommandInterface> export_command_interfaces() override;
 
-  MOTOR_DAMIAO_HARDWARE_PUBLIC
-  hardware_interface::return_type read(
-    const rclcpp::Time & time,
-    const rclcpp::Duration & period) override;
+    MOTOR_DAMIAO_HARDWARE_PUBLIC
+    hardware_interface::return_type read(
+        const rclcpp::Time& time,
+        const rclcpp::Duration& period) override;
 
-  MOTOR_DAMIAO_HARDWARE_PUBLIC
-  hardware_interface::return_type write(
-    const rclcpp::Time & time,
-    const rclcpp::Duration & period) override;
+    MOTOR_DAMIAO_HARDWARE_PUBLIC
+    hardware_interface::return_type write(
+        const rclcpp::Time& time,
+        const rclcpp::Duration& period) override;
 
-private:
-  // 命令接口
-  std::vector<double> hw_commands_position_;
-  std::vector<double> hw_commands_velocity_;
-  std::vector<double> hw_commands_effort_;
-  
-  // 状态接口
-  std::vector<double> hw_states_position_;
-  std::vector<double> hw_states_velocity_;
-  std::vector<double> hw_states_effort_;
+   private:
+    // 命令接口
+    std::vector<double> hw_commands_position_;
+    std::vector<double> hw_commands_velocity_;
+    std::vector<double> hw_commands_effort_;
 
-  bool is_active_{false};
-  
-  std::vector<MotorConfig> motor_configs_;
+    // 状态接口
+    std::vector<double> hw_states_position_;
+    std::vector<double> hw_states_velocity_;
+    std::vector<double> hw_states_effort_;
 
-  // 存储不同CAN接口的驱动程序实例
-  std::map<std::string, std::shared_ptr<DaMiaoMotion::DaMiaoSocketCanDriver>> can_drivers_;
-  
-  // 位置累加相关变量
-  std::vector<double> previous_raw_position_;  // 上一次的原始位置值
-  std::vector<double> accumulated_position_;   // 累加的位置值
-  std::vector<bool> position_initialized_;     // 位置是否已初始化
-  std::vector<bool> enable_position_expansion_; // 是否启用位置扩展
-  
-  // JointStates 消息相关
-  motor_interfaces::msg::JointStates joint_states_msg_;  // 存储所有电机状态
-  rclcpp::Publisher<motor_interfaces::msg::JointStates>::SharedPtr joint_states_publisher_;
-  std::unique_ptr<realtime_tools::RealtimePublisher<motor_interfaces::msg::JointStates>> realtime_joint_states_publisher_;
-  rclcpp::Time last_joint_states_publish_time_;          // 最后一次发布消息的时间
-  std::unique_ptr<rclcpp::Duration> joint_states_publish_timeout_;  // 发布超时时间
-  std::unique_ptr<rclcpp::Duration> feedback_timeout_;             // 反馈超时时间
+    bool is_active_{false};
 
-  // 转换错误代码从DaMiao格式到JointState格式
-  uint32_t convertErrorCode(const DaMiaoMotion::ErrorCode& damiao_error) const;
+    std::vector<MotorConfig> motor_configs_;
 
-  // 开启所有电机
-  void enableAllMotor();
-  
-  // 关闭所有电机
-  void disableAllMotor();
+    // 存储不同CAN接口的驱动程序实例
+    std::map<std::string, std::shared_ptr<DaMiaoMotion::DaMiaoSocketCanDriver>> can_drivers_;
+
+    // 位置累加相关变量
+    std::vector<double> previous_raw_position_;    // 上一次的原始位置值
+    std::vector<double> accumulated_position_;     // 累加的位置值
+    std::vector<bool> position_initialized_;       // 位置是否已初始化
+    std::vector<bool> enable_position_expansion_;  // 是否启用位置扩展
+
+    // JointStates 消息相关
+    motor_interfaces::msg::JointStates joint_states_msg_;  // 存储所有电机状态
+    rclcpp::Publisher<motor_interfaces::msg::JointStates>::SharedPtr joint_states_publisher_;
+    std::unique_ptr<realtime_tools::RealtimePublisher<motor_interfaces::msg::JointStates>> realtime_joint_states_publisher_;
+    rclcpp::Time last_joint_states_publish_time_;                     // 最后一次发布消息的时间
+    std::unique_ptr<rclcpp::Duration> joint_states_publish_timeout_;  // 发布超时时间
+    std::unique_ptr<rclcpp::Duration> feedback_timeout_;              // 反馈超时时间
+
+    // 转换错误代码从DaMiao格式到JointState格式
+    uint32_t convertErrorCode(const DaMiaoMotion::ErrorCode& damiao_error) const;
+
+    // 开启所有电机
+    void enableAllMotor();
+
+    // 关闭所有电机
+    void disableAllMotor();
 };
 
 }  // namespace motor_damiao_hardware
