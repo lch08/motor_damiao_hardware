@@ -7,7 +7,6 @@
             <plugin>motor_damiao_hardware/MotorDamiaoRobot</plugin>
             <!-- <plugin>gazebo_ros2_control/GazeboSystem</plugin> -->
 
-            <param name="joint_states_publish_timeout">1.0</param>
             <param name="feedback_timeout">1.0</param>
             <param name="can0_baud_rate">1000000</param>
             <!-- <param name="can1_baud_rate">1000000</param> -->
@@ -29,6 +28,9 @@
             <state_interface name="position" />
             <state_interface name="velocity" />
             <state_interface name="effort" />
+            <state_interface name="mos_temperature" />
+            <state_interface name="motor_temperature" />
+            <state_interface name="error_code" /> <!-- MotorErrorCode -->
 
             <param name="can_name">can0</param>
             <param name="can_id">0x01</param>
@@ -57,6 +59,9 @@
             <state_interface name="position" />
             <state_interface name="velocity" />
             <state_interface name="effort" />
+            <state_interface name="mos_temperature" />
+            <state_interface name="motor_temperature" />
+            <state_interface name="error_code" />  <!-- MotorErrorCode -->
 
             <param name="can_name">can0</param>
             <param name="can_id">0x02</param>

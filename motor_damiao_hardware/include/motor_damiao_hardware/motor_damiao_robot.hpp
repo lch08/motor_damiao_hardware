@@ -25,14 +25,14 @@
 #include "hardware_interface/types/hardware_interface_type_values.hpp"
 #include "rclcpp_lifecycle/state.hpp"
 #include "rclcpp/macros.hpp"
-#include "motor_damiao_hardware/visibility_control.h"
-#include "motor_damiao_hardware/DaMiaoSocketCanDriver.hpp"
-#include "motor_damiao_hardware/DaMiaoMotionTranslation.hpp"
-#include "motor_interfaces/msg/joint_states.hpp"
-#include "motor_interfaces/msg/joint_state.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_lifecycle/state.hpp"
 #include "realtime_tools/realtime_publisher.hpp"
+
+#include "motor_damiao_hardware/visibility_control.h"
+#include "motor_damiao_hardware/DaMiaoSocketCanDriver.hpp"
+#include "motor_damiao_hardware/DaMiaoMotionTranslation.hpp"
+#include "motor_damiao_hardware/MotorErrorCode.hpp"
 
 using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
 
@@ -95,6 +95,9 @@ class MotorDamiaoRobot : public hardware_interface::SystemInterface {
     std::vector<double> hw_states_position_;
     std::vector<double> hw_states_velocity_;
     std::vector<double> hw_states_effort_;
+    std::vector<double> hw_states_mos_temperature_;    // MOS温度
+    std::vector<double> hw_states_motor_temperature_;  // 电机线圈温度
+    std::vector<double> hw_states_error_code_;         // 错误代码
 
     bool is_active_{false};
 
@@ -109,16 +112,10 @@ class MotorDamiaoRobot : public hardware_interface::SystemInterface {
     std::vector<bool> position_initialized_;       // 位置是否已初始化
     std::vector<bool> enable_position_expansion_;  // 是否启用位置扩展
 
-    // JointStates 消息相关
-    motor_interfaces::msg::JointStates joint_states_msg_;  // 存储所有电机状态
-    rclcpp::Publisher<motor_interfaces::msg::JointStates>::SharedPtr joint_states_publisher_;
-    std::unique_ptr<realtime_tools::RealtimePublisher<motor_interfaces::msg::JointStates>> realtime_joint_states_publisher_;
-    rclcpp::Time last_joint_states_publish_time_;                     // 最后一次发布消息的时间
-    std::unique_ptr<rclcpp::Duration> joint_states_publish_timeout_;  // 发布超时时间
-    std::unique_ptr<rclcpp::Duration> feedback_timeout_;              // 反馈超时时间
+    std::unique_ptr<rclcpp::Duration> feedback_timeout_;  // 电机反馈超时时间
 
-    // 转换错误代码从DaMiao格式到JointState格式
-    uint32_t convertErrorCode(const DaMiaoMotion::ErrorCode& damiao_error) const;
+    // 转换错误代码从DaMiaoMotion::ErrorCode到MotorErrorCode
+    MotorErrorCode convertErrorCode(const DaMiaoMotion::ErrorCode& damiao_error) const;
 
     // 开启所有电机
     void enableAllMotor();

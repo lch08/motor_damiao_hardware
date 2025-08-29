@@ -13,7 +13,6 @@ find_package(hardware_interface REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_lifecycle REQUIRED)
-find_package(motor_interfaces REQUIRED)
 find_package(realtime_tools REQUIRED)
 
 add_library(
@@ -34,7 +33,6 @@ ament_target_dependencies(
   pluginlib
   rclcpp
   rclcpp_lifecycle
-  motor_interfaces
   realtime_tools
 )
 
@@ -73,7 +71,6 @@ ament_export_dependencies(
   pluginlib
   rclcpp
   rclcpp_lifecycle
-  motor_interfaces
   realtime_tools
 )
 
